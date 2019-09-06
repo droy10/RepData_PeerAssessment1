@@ -1,25 +1,80 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "PA1_template"
+output: html_document
 ---
 
-
-## Loading and preprocessing the data
-
-
-
-## What is mean total number of steps taken per day?
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 
+```{r}
+# We get the raw data:
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "Factivity.zip", method = "curl")
+unzip("Factivity.zip", exdir=".")
 
-## What is the average daily activity pattern?
+# We store the data in data frame "Act", and make the date column as dates:
+Act <- read.csv("activity.csv", header=TRUE)
+Act <- transform(Act, date = as.Date(date))
+
+# New table StepsPerDay will be an aggregation of steps each day:
+StepsPerDay = data.frame(date = unique(Act$date), value = tapply(Act$steps, Act$date, sum, simplify = TRUE, na.rm=TRUE))
+
+# Histogram of total steps per day:
+plot(StepsPerDay$date, StepsPerDay$value, type = "h", ylab = "Daily Steps", xlab = "Date (Year = 2012)", main = "Total Steps per Day")
+
+# Mean number of steps each day:
+mean(StepsPerDay$value)
+
+# Median number of steps each day:
+median(StepsPerDay$value)
+
+# New table AvgStepsPerInterval will be an average of steps for each 5-minute interval:
+AvgStepsPerInterval = data.frame(interval = unique(Act$interval), value = tapply(Act$steps, Act$interval, mean, simplify = TRUE, na.rm=TRUE))
+
+# Histogram of average number of steps per interval, for all days:
+plot(AvgStepsPerInterval$interval, AvgStepsPerInterval$value, type = "l", xlab = "Time Interval", ylab = "Avg Number of Steps")
+
+# Interval having the maximum number of average steps:
+AvgStepsPerInterval[AvgStepsPerInterval$value == max(AvgStepsPerInterval$value), ]
+
+# Numbers of rows having an NA as number of steps:
+nrow(Act[is.na(Act$steps), ])
+
+# We will use the interval average, rounded, to replace the NAs, in a new data frame:
+ActNoNAs <- Act
+ActNoNAs[is.na(ActNoNAs$steps), ][1] <- as.integer(round(tapply(ActNoNAs$steps, ActNoNAs$interval, mean, simplify = TRUE, na.rm=TRUE)))
+
+# Table StepsPerDay2 created for a new aggregation of steps each day (with no NAs!):
+StepsPerDay2 = data.frame(date = unique(ActNoNAs$date), value = tapply(ActNoNAs$steps, ActNoNAs$date, sum, simplify = TRUE))
+
+# New histogram of total steps per day, compared to old:
+par(mfrow = c(1, 2))
+plot(StepsPerDay2$date, StepsPerDay$value, type = "h", ylab = "Daily Steps", xlab = "Date (Year = 2012)", main = "Steps/Day (NAs replaced)")
+plot(StepsPerDay$date, StepsPerDay$value, type = "h", ylab = "Daily Steps", xlab = "Date (Year = 2012)", main = "Steps/Day (NAs ignored)")
+
+# (New) mean number of steps each day - (old) mean number of steps each day:
+mean(StepsPerDay2$value) - mean(StepsPerDay$value)
+
+# (New) median number of steps each day - (old) median number of steps each day:
+median(StepsPerDay2$value) - median(StepsPerDay$value)
+
+# New factor variable indicating if weekday or weekend:
+ActNoNAs$weekday <- ifelse(weekdays(ActNoNAs[,2])=="Saturday"|weekdays(ActNoNAs[,2])=="Sunday", "weekend", "weekday")
+
+# New tables to get the weekday averages of steps for each 5-minute interval:
+ActNoNAsWeekday <- ActNoNAs[ActNoNAs$weekday == "weekday", ]
+AvgStepsPerIntWeekday = data.frame(interval = unique(ActNoNAsWeekday$interval), value = tapply(ActNoNAsWeekday$steps, ActNoNAsWeekday$interval, mean, simplify = TRUE, na.rm=TRUE))
+
+# New tables to get the weekend averages of steps for each 5-minute interval:
+ActNoNAsWeekend <- ActNoNAs[ActNoNAs$weekday == "weekend", ]
+AvgStepsPerIntWeekend = data.frame(interval = unique(ActNoNAsWeekend$interval), value = tapply(ActNoNAsWeekend$steps, ActNoNAsWeekend$interval, mean, simplify = TRUE, na.rm=TRUE))
+
+# Histograms of average number of steps per interval, for all days, on weekdays and weekends:
+par(mfrow = c(2, 1))
+par(mar = c(4,4,2,2))
+plot(AvgStepsPerIntWeekend$interval, AvgStepsPerIntWeekend$value, type = "l", xlab = "", ylab = "Number of Steps", main = "weekend", col = "blue")
+plot(AvgStepsPerIntWeekday$interval, AvgStepsPerIntWeekday$value, type = "l", xlab = "Interval", ylab = "Number of Steps", main = "weekday", col = "blue")
+```
 
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
